@@ -10,6 +10,11 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase SDKs (v10 Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -73,21 +78,28 @@
       <!-- Cover Image -->
       <div class="h-44 w-full bg-slate-200 overflow-hidden relative group">
         <img id="coverImg" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80" alt="Cover" class="w-full h-full object-cover">
-        <label for="coverInput" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full cursor-pointer transition text-xs flex items-center gap-1 shadow">
+        
+        <!-- Admin Controls for Cover -->
+        <label for="coverInput" class="admin-only hidden absolute bottom-2 right-2 bg-black/70 hover:bg-black/90 text-white p-2 rounded-full cursor-pointer transition text-xs flex items-center gap-1 shadow">
           <i class="fas fa-camera"></i>
           <span class="text-[11px]">เปลี่ยนปก</span>
         </label>
-        <input type="file" id="coverInput" accept="image/*" class="hidden" onchange="handleImageUpload(event, 'coverImg', 'jarrymee_cover_img')">
+        <input type="file" id="coverInput" accept="image/*" class="hidden" onchange="handleAdminImageUpload(event, 'coverImg', 'cover')">
+
+        <!-- Admin Lock/Unlock Button -->
+        <button onclick="toggleAdminMode()" class="absolute top-3 right-3 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full flex items-center justify-center transition shadow backdrop-blur-sm z-10" title="โหมดเจ้าของร้าน">
+          <i id="adminLockIcon" class="fas fa-lock text-xs"></i>
+        </button>
       </div>
 
       <!-- Profile Image -->
       <div class="absolute -bottom-10 left-4">
         <div class="relative group">
           <img id="profileImg" src="https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?auto=format&fit=crop&w=300&q=80" alt="Profile" class="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md bg-white">
-          <label for="profileInput" class="absolute bottom-0 right-0 bg-sky-500 hover:bg-sky-600 text-white p-1.5 rounded-full cursor-pointer transition shadow text-xs">
+          <label for="profileInput" class="admin-only hidden absolute bottom-0 right-0 bg-sky-500 hover:bg-sky-600 text-white p-1.5 rounded-full cursor-pointer transition shadow text-xs">
             <i class="fas fa-camera"></i>
           </label>
-          <input type="file" id="profileInput" accept="image/*" class="hidden" onchange="handleImageUpload(event, 'profileImg', 'jarrymee_profile_img')">
+          <input type="file" id="profileInput" accept="image/*" class="hidden" onchange="handleAdminImageUpload(event, 'profileImg', 'profile')">
         </div>
       </div>
     </div>
@@ -99,8 +111,8 @@
           <h1 id="shopName" class="text-xl font-bold text-slate-900 leading-tight">Jarrymee ไอจี้บริการเติมเกม</h1>
           <p class="text-xs text-slate-500 mt-0.5"><i class="fas fa-gamepad text-sky-500 mr-1"></i> เติมเกม</p>
         </div>
-        <!-- ปุ่มเปิด Modal แก้ไขรายละเอียดร้านค้า -->
-        <button onclick="openEditStoreModal()" class="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-600 px-2.5 py-1.5 rounded-lg text-xs font-medium transition border border-sky-200">
+        <!-- ปุ่มแก้ไขข้อมูลร้านค้า (เฉพาะ Admin) -->
+        <button id="btnEditStore" onclick="openEditStoreModal()" class="admin-only hidden flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-600 px-2.5 py-1.5 rounded-lg text-xs font-medium transition border border-sky-200">
           <i class="fas fa-pen-to-square"></i>
           <span>แก้ไขข้อมูล</span>
         </button>
@@ -131,7 +143,6 @@
 
         <!-- Rating Breakdown (%) -->
         <div class="col-span-8 space-y-1.5 pl-1" id="ratingBreakdown">
-          <!-- 5 Stars -->
           <div class="flex items-center text-xs gap-2">
             <span class="w-8 text-slate-600 font-medium flex items-center gap-1">5 <i class="fas fa-star text-amber-400 text-[10px]"></i></span>
             <div class="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -139,7 +150,6 @@
             </div>
             <span id="percent-5" class="w-10 text-right text-slate-500 text-[11px]">0%</span>
           </div>
-          <!-- 4 Stars -->
           <div class="flex items-center text-xs gap-2">
             <span class="w-8 text-slate-600 font-medium flex items-center gap-1">4 <i class="fas fa-star text-amber-400 text-[10px]"></i></span>
             <div class="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -147,7 +157,6 @@
             </div>
             <span id="percent-4" class="w-10 text-right text-slate-500 text-[11px]">0%</span>
           </div>
-          <!-- 3 Stars -->
           <div class="flex items-center text-xs gap-2">
             <span class="w-8 text-slate-600 font-medium flex items-center gap-1">3 <i class="fas fa-star text-amber-400 text-[10px]"></i></span>
             <div class="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -155,7 +164,6 @@
             </div>
             <span id="percent-3" class="w-10 text-right text-slate-500 text-[11px]">0%</span>
           </div>
-          <!-- 2 Stars -->
           <div class="flex items-center text-xs gap-2">
             <span class="w-8 text-slate-600 font-medium flex items-center gap-1">2 <i class="fas fa-star text-amber-400 text-[10px]"></i></span>
             <div class="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -163,7 +171,6 @@
             </div>
             <span id="percent-2" class="w-10 text-right text-slate-500 text-[11px]">0%</span>
           </div>
-          <!-- 1 Star -->
           <div class="flex items-center text-xs gap-2">
             <span class="w-8 text-slate-600 font-medium flex items-center gap-1">1 <i class="fas fa-star text-amber-400 text-[10px]"></i></span>
             <div class="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -184,9 +191,7 @@
     </div>
 
     <!-- Reviews List Container -->
-    <div class="flex-1 p-4 bg-slate-50 space-y-3" id="reviewsContainer">
-      <!-- Dynamic reviews will be appended here -->
-    </div>
+    <div class="flex-1 p-4 bg-slate-50 space-y-3" id="reviewsContainer"></div>
   </div>
 
   <!-- Modal 1: Edit Store Info Form -->
@@ -194,7 +199,7 @@
     <div class="bg-white w-full max-w-[430px] rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 transform transition-transform duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
       <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fas fa-store text-sky-500"></i> แก้ไขข้อมูลร้านค้า
+          <i class="fas fa-store text-sky-500"></i> แก้ไขข้อมูลร้านค้า (Admin)
         </h3>
         <button onclick="closeEditStoreModal()" class="text-slate-400 hover:text-slate-600 p-1">
           <i class="fas fa-xmark text-xl"></i>
@@ -213,25 +218,22 @@
             <span id="modalWordCounter" class="text-[11px] text-slate-400">0/200 คำ</span>
           </div>
           <textarea id="editShopDescInput" rows="5" oninput="handleDescInputModal()" placeholder="กรอกรายละเอียดเกี่ยวกับร้านค้าของคุณ..." class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition font-light leading-relaxed"></textarea>
-          <p class="text-[11px] text-sky-600 mt-1"><i class="fas fa-circle-info mr-1"></i>กำหนดรายละเอียดได้ไม่เกิน 200 คำ</p>
         </div>
 
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="closeEditStoreModal()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 rounded-xl transition text-sm">ยกเลิก</button>
           <button type="submit" class="w-1/2 bg-sky-500 hover:bg-sky-600 text-white font-medium py-2.5 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-1">
             <i class="fas fa-floppy-disk"></i>
-            <span>บันทึก</span>
+            <span>บันทึกข้อมูล</span>
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal 2: Floating Modal Review Form -->
+  <!-- Modal 2: Review Form -->
   <div id="reviewModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center modal-backdrop hidden transition-opacity duration-300">
     <div class="bg-white w-full max-w-[430px] rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 transform transition-transform duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
-      
-      <!-- Modal Header -->
       <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fas fa-star text-amber-400"></i> เขียนรีวิวให้ร้านค้า
@@ -242,13 +244,11 @@
       </div>
 
       <form id="reviewForm" onsubmit="submitReview(event)" class="space-y-4">
-        <!-- 1. Reviewer Name -->
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อของคุณ <span class="text-red-500">*</span></label>
           <input type="text" id="reviewerName" required placeholder="เช่น สมชาย ใจดี" class="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition">
         </div>
 
-        <!-- 2. Star Rating Input -->
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">ให้คะแนนร้านค้า <span class="text-red-500">*</span></label>
           <div class="flex items-center justify-center gap-2 bg-sky-50/50 p-3 rounded-lg border border-sky-100">
@@ -263,13 +263,11 @@
           </div>
         </div>
 
-        <!-- 3. Review Text -->
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">ข้อความรีวิว <span class="text-red-500">*</span></label>
           <textarea id="reviewText" required rows="3" placeholder="แบ่งปันประสบการณ์ของคุณเกี่ยวกับร้านนี้..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition"></textarea>
         </div>
 
-        <!-- 4. Review Image Upload (Optional) -->
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">แนบรูปภาพ (ถ้ามี)</label>
           <div class="border-2 border-dashed border-slate-200 rounded-lg p-3 text-center hover:bg-slate-50 transition cursor-pointer" onclick="document.getElementById('reviewImageInput').click()">
@@ -287,8 +285,7 @@
           </div>
         </div>
 
-        <!-- Submit Button -->
-        <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-medium py-3 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2 mt-2">
+        <button type="submit" id="btnSubmitReview" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-medium py-3 rounded-xl shadow-md transition text-sm flex items-center justify-center gap-2 mt-2">
           <i class="fas fa-paper-plane"></i>
           <span>ส่งรีวิว</span>
         </button>
@@ -297,57 +294,132 @@
   </div>
 
   <script>
-    // Initial State & Data Store
+    // --- 1. FIREBASE CONFIGURATION (ใส่ค่าจากรูปของคุณเรียบร้อยแล้ว) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_fmFWFxYY3APhG7ngsEGmOKIkCPrZXng",
+      authDomain: "jarrymee-review.firebaseapp.com",
+      projectId: "jarrymee-review",
+      storageBucket: "jarrymee-review.firebasestorage.app",
+      messagingSenderId: "1093679729770",
+      appId: "1:1093679729770:web:27de808aae37fc90288e13",
+      measurementId: "G-PBJZTQJVQF"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Admin Security & State
+    let isAdmin = false;
+    const ADMIN_PASSWORD = "1234"; // รหัสผ่านเจ้าของร้าน (เปลี่ยนได้ที่นี่)
+
     let selectedRating = 5;
     let reviewImageBase64 = null;
     let reviews = [];
 
-    // Initialize App & Load Saved Data
+    // --- INITIALIZE APP ---
     document.addEventListener("DOMContentLoaded", () => {
-      loadSavedData();
+      listenToStoreDataRealtime();
+      listenToReviewsRealtime();
       enforceWordCountLimit();
-      renderReviews();
-      updateRatingStats();
     });
 
-    // Load Data from localStorage
-    function loadSavedData() {
-      // Load Cover
-      const savedCover = localStorage.getItem('jarrymee_cover_img');
-      if (savedCover) {
-        document.getElementById('coverImg').src = savedCover;
-      }
-      // Load Profile
-      const savedProfile = localStorage.getItem('jarrymee_profile_img');
-      if (savedProfile) {
-        document.getElementById('profileImg').src = savedProfile;
-      }
-      // Load Shop Name
-      const savedName = localStorage.getItem('jarrymee_shop_name');
-      if (savedName) {
-        document.getElementById('shopName').innerText = savedName;
-      }
-      // Load Shop Description
-      const savedDesc = localStorage.getItem('jarrymee_shop_desc');
-      if (savedDesc) {
-        document.getElementById('shopDesc').innerText = savedDesc;
-      }
-      // Load Reviews
-      const savedReviews = localStorage.getItem('jarrymee_reviews');
-      if (savedReviews) {
-        try {
-          reviews = JSON.parse(savedReviews);
-        } catch (e) {
-          reviews = [];
+    // --- ADMIN PERMISSION TOGGLE ---
+    function toggleAdminMode() {
+      if (!isAdmin) {
+        const pwd = prompt("กรุณากรอกรหัสผ่านเจ้าของร้าน (Admin):");
+        if (pwd === ADMIN_PASSWORD) {
+          isAdmin = true;
+          document.getElementById("adminLockIcon").className = "fas fa-lock-open text-sky-400";
+          document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
+          alert("เข้าสู่โหมดเจ้าของร้านเรียบร้อยแล้ว คุณสามารถเปลี่ยนรูปปก โปรไฟล์ และแก้ไขข้อมูลร้านได้");
+        } else if (pwd !== null) {
+          alert("รหัสผ่านไม่ถูกต้อง");
         }
+      } else {
+        isAdmin = false;
+        document.getElementById("adminLockIcon").className = "fas fa-lock text-xs";
+        document.querySelectorAll(".admin-only").forEach(el => el.classList.add("hidden"));
+        alert("ออกจากโหมดเจ้าของร้านเรียบร้อยแล้ว");
       }
     }
 
-    // Word Count Utilities & Modal Edit Store Handlers
-    function countWords(str) {
-      return str.trim().split(/\s+/).filter(word => word.length > 0).length;
+    // --- REALTIME DATA SYNC (FIREBASE) ---
+    function listenToStoreDataRealtime() {
+      db.collection("store").doc("info").onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.name) document.getElementById('shopName').innerText = data.name;
+          if (data.desc) document.getElementById('shopDesc').innerText = data.desc;
+          if (data.cover) document.getElementById('coverImg').src = data.cover;
+          if (data.profile) document.getElementById('profileImg').src = data.profile;
+          enforceWordCountLimit();
+        }
+      });
     }
 
+    function listenToReviewsRealtime() {
+      db.collection("reviews").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+        reviews = [];
+        snapshot.forEach((doc) => {
+          reviews.push({ id: doc.id, ...doc.data() });
+        });
+        renderReviews();
+        updateRatingStats();
+      });
+    }
+
+    // --- ADMIN HANDLERS ---
+    function handleAdminImageUpload(event, targetImgId, type) {
+      if (!isAdmin) return;
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const base64Image = e.target.result;
+          document.getElementById(targetImgId).src = base64Image;
+          db.collection("store").doc("info").set({ [type]: base64Image }, { merge: true });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function saveStoreInfo(e) {
+      e.preventDefault();
+      if (!isAdmin) return;
+
+      const newName = document.getElementById("editShopNameInput").value.trim();
+      const newDesc = document.getElementById("editShopDescInput").value.trim();
+
+      db.collection("store").doc("info").set({ name: newName, desc: newDesc }, { merge: true });
+      closeEditStoreModal();
+    }
+
+    // --- REVIEW SUBMISSION HANDLER ---
+    function submitReview(e) {
+      e.preventDefault();
+      const name = document.getElementById("reviewerName").value.trim();
+      const text = document.getElementById("reviewText").value.trim();
+      
+      const now = new Date();
+      const dateString = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
+                         ', ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+      const newReview = {
+        name: name,
+        rating: selectedRating,
+        comment: text,
+        date: dateString,
+        image: reviewImageBase64,
+        timestamp: Date.now()
+      };
+
+      db.collection("reviews").add(newReview).then(() => {
+        closeReviewModal();
+      });
+    }
+
+    // --- WORD COUNT & UI HELPERS ---
     function enforceWordCountLimit() {
       const descEl = document.getElementById("shopDesc");
       const text = descEl.innerText;
@@ -355,19 +427,14 @@
       const limit = 200;
 
       if (words.length > limit) {
-        const truncated = words.slice(0, limit).join(" ") + "...";
-        descEl.innerText = truncated;
+        descEl.innerText = words.slice(0, limit).join(" ") + "...";
       }
       document.getElementById("descWordCount").innerText = `${Math.min(words.length, limit)}/200 คำ`;
     }
 
     function openEditStoreModal() {
-      const currentName = document.getElementById("shopName").innerText;
-      const currentDesc = document.getElementById("shopDesc").innerText;
-
-      document.getElementById("editShopNameInput").value = currentName;
-      document.getElementById("editShopDescInput").value = currentDesc;
-      
+      document.getElementById("editShopNameInput").value = document.getElementById("shopName").innerText;
+      document.getElementById("editShopDescInput").value = document.getElementById("shopDesc").innerText;
       handleDescInputModal();
       document.getElementById("editStoreModal").classList.remove("hidden");
     }
@@ -379,46 +446,12 @@
     function handleDescInputModal() {
       const textarea = document.getElementById("editShopDescInput");
       const words = textarea.value.trim().split(/\s+/).filter(w => w.length > 0);
-      const wordCount = words.length;
-
-      if (wordCount > 200) {
+      if (words.length > 200) {
         textarea.value = words.slice(0, 200).join(" ");
       }
-      document.getElementById("modalWordCounter").innerText = `${Math.min(wordCount, 200)}/200 คำ`;
+      document.getElementById("modalWordCounter").innerText = `${Math.min(words.length, 200)}/200 คำ`;
     }
 
-    function saveStoreInfo(e) {
-      e.preventDefault();
-      const newName = document.getElementById("editShopNameInput").value.trim();
-      const newDesc = document.getElementById("editShopDescInput").value.trim();
-
-      if (newName) {
-        document.getElementById("shopName").innerText = newName;
-        localStorage.setItem('jarrymee_shop_name', newName);
-      }
-      if (newDesc) {
-        document.getElementById("shopDesc").innerText = newDesc;
-        localStorage.setItem('jarrymee_shop_desc', newDesc);
-        enforceWordCountLimit();
-      }
-      closeEditStoreModal();
-    }
-
-    // Image Upload Handling (Profile & Cover)
-    function handleImageUpload(event, targetImgId, storageKey) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const base64Image = e.target.result;
-          document.getElementById(targetImgId).src = base64Image;
-          localStorage.setItem(storageKey, base64Image); // บันทึกลง localStorage
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-
-    // Modal Review Handlers
     function openReviewModal() {
       document.getElementById("reviewModal").classList.remove("hidden");
       setRating(5);
@@ -430,7 +463,6 @@
       removeReviewImage();
     }
 
-    // Interactive Star Rating Input
     function setRating(rating) {
       selectedRating = rating;
       const stars = document.querySelectorAll("#starInputContainer i");
@@ -446,7 +478,6 @@
       document.getElementById("ratingText").innerText = `${rating}.0 / 5.0`;
     }
 
-    // Review Image Preview in Form
     function previewReviewImage(event) {
       const file = event.target.files[0];
       if (file) {
@@ -469,35 +500,6 @@
       document.getElementById("uploadPrompt").classList.remove("hidden");
     }
 
-    // Submit Review Handler
-    function submitReview(e) {
-      e.preventDefault();
-
-      const name = document.getElementById("reviewerName").value.trim();
-      const text = document.getElementById("reviewText").value.trim();
-      
-      const now = new Date();
-      const dateString = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
-                         ', ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-
-      const newReview = {
-        id: Date.now(),
-        name: name,
-        rating: selectedRating,
-        comment: text,
-        date: dateString,
-        image: reviewImageBase64
-      };
-
-      reviews.unshift(newReview); // เพิ่มไว้บนสุด
-      localStorage.setItem('jarrymee_reviews', JSON.stringify(reviews)); // บันทึกรีวิวล่าสุดลง localStorage
-
-      renderReviews();
-      updateRatingStats();
-      closeReviewModal();
-    }
-
-    // Calculation & Stats Update
     function updateRatingStats() {
       const total = reviews.length;
       document.getElementById("totalReviews").innerText = `${total} รีวิว`;
@@ -512,13 +514,11 @@
         return;
       }
 
-      // Calculate Average Score
       const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
       const avg = (sum / total).toFixed(1);
       document.getElementById("avgRating").innerText = avg;
       renderAvgStars(Math.round(avg));
 
-      // Calculate Breakdown Percentages
       const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       reviews.forEach(r => {
         if (counts[r.rating] !== undefined) counts[r.rating]++;
@@ -535,16 +535,11 @@
       const container = document.getElementById("avgStars");
       let starsHtml = "";
       for (let i = 1; i <= 5; i++) {
-        if (i <= score) {
-          starsHtml += '<i class="fas fa-star text-amber-400"></i>';
-        } else {
-          starsHtml += '<i class="far fa-star text-slate-300"></i>';
-        }
+        starsHtml += i <= score ? '<i class="fas fa-star text-amber-400"></i>' : '<i class="far fa-star text-slate-300"></i>';
       }
       container.innerHTML = starsHtml;
     }
 
-    // Render Review List Below Button
     function renderReviews() {
       const container = document.getElementById("reviewsContainer");
       if (reviews.length === 0) {
@@ -562,10 +557,10 @@
           <div class="flex justify-between items-start">
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center text-xs">
-                ${r.name.charAt(0)}
+                ${r.name ? r.name.charAt(0) : 'U'}
               </div>
               <div>
-                <h4 class="text-xs font-bold text-slate-800">${escapeHtml(r.name)}</h4>
+                <h4 class="text-xs font-bold text-slate-800">${escapeHtml(r.name || 'ไม่ระบุชื่อ')}</h4>
                 <div class="flex text-amber-400 text-[10px] gap-0.5">
                   ${getStarsHtml(r.rating)}
                 </div>
@@ -588,16 +583,13 @@
     function getStarsHtml(rating) {
       let html = '';
       for (let i = 1; i <= 5; i++) {
-        if (i <= rating) {
-          html += '<i class="fas fa-star text-amber-400"></i>';
-        } else {
-          html += '<i class="far fa-star text-slate-300"></i>';
-        }
+        html += i <= rating ? '<i class="fas fa-star text-amber-400"></i>' : '<i class="far fa-star text-slate-300"></i>';
       }
       return html;
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       return text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
