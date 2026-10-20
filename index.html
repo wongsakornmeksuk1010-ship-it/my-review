@@ -77,7 +77,7 @@
           <i class="fas fa-camera"></i>
           <span class="text-[11px]">เปลี่ยนปก</span>
         </label>
-        <input type="file" id="coverInput" accept="image/*" class="hidden" onchange="handleImageUpload(event, 'coverImg')">
+        <input type="file" id="coverInput" accept="image/*" class="hidden" onchange="handleImageUpload(event, 'coverImg', 'jarrymee_cover_img')">
       </div>
 
       <!-- Profile Image -->
@@ -87,7 +87,7 @@
           <label for="profileInput" class="absolute bottom-0 right-0 bg-sky-500 hover:bg-sky-600 text-white p-1.5 rounded-full cursor-pointer transition shadow text-xs">
             <i class="fas fa-camera"></i>
           </label>
-          <input type="file" id="profileInput" accept="image/*" class="hidden" onchange="handleImageUpload(event, 'profileImg')">
+          <input type="file" id="profileInput" accept="image/*" class="hidden" onchange="handleImageUpload(event, 'profileImg', 'jarrymee_profile_img')">
         </div>
       </div>
     </div>
@@ -297,17 +297,51 @@
   </div>
 
   <script>
-    // Initial State & Data Store (เริ่มต้นที่ Array ว่าง)
+    // Initial State & Data Store
     let selectedRating = 5;
     let reviewImageBase64 = null;
-    let reviews = []; // ไม่มีรีวิวเริ่มต้น
+    let reviews = [];
 
-    // Initialize App
+    // Initialize App & Load Saved Data
     document.addEventListener("DOMContentLoaded", () => {
+      loadSavedData();
       enforceWordCountLimit();
       renderReviews();
       updateRatingStats();
     });
+
+    // Load Data from localStorage
+    function loadSavedData() {
+      // Load Cover
+      const savedCover = localStorage.getItem('jarrymee_cover_img');
+      if (savedCover) {
+        document.getElementById('coverImg').src = savedCover;
+      }
+      // Load Profile
+      const savedProfile = localStorage.getItem('jarrymee_profile_img');
+      if (savedProfile) {
+        document.getElementById('profileImg').src = savedProfile;
+      }
+      // Load Shop Name
+      const savedName = localStorage.getItem('jarrymee_shop_name');
+      if (savedName) {
+        document.getElementById('shopName').innerText = savedName;
+      }
+      // Load Shop Description
+      const savedDesc = localStorage.getItem('jarrymee_shop_desc');
+      if (savedDesc) {
+        document.getElementById('shopDesc').innerText = savedDesc;
+      }
+      // Load Reviews
+      const savedReviews = localStorage.getItem('jarrymee_reviews');
+      if (savedReviews) {
+        try {
+          reviews = JSON.parse(savedReviews);
+        } catch (e) {
+          reviews = [];
+        }
+      }
+    }
 
     // Word Count Utilities & Modal Edit Store Handlers
     function countWords(str) {
@@ -360,21 +394,25 @@
 
       if (newName) {
         document.getElementById("shopName").innerText = newName;
+        localStorage.setItem('jarrymee_shop_name', newName);
       }
       if (newDesc) {
         document.getElementById("shopDesc").innerText = newDesc;
+        localStorage.setItem('jarrymee_shop_desc', newDesc);
         enforceWordCountLimit();
       }
       closeEditStoreModal();
     }
 
     // Image Upload Handling (Profile & Cover)
-    function handleImageUpload(event, targetImgId) {
+    function handleImageUpload(event, targetImgId, storageKey) {
       const file = event.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          document.getElementById(targetImgId).src = e.target.result;
+          const base64Image = e.target.result;
+          document.getElementById(targetImgId).src = base64Image;
+          localStorage.setItem(storageKey, base64Image); // บันทึกลง localStorage
         };
         reader.readAsDataURL(file);
       }
@@ -451,7 +489,9 @@
         image: reviewImageBase64
       };
 
-      reviews.unshift(newReview); // Add to top
+      reviews.unshift(newReview); // เพิ่มไว้บนสุด
+      localStorage.setItem('jarrymee_reviews', JSON.stringify(reviews)); // บันทึกรีวิวล่าสุดลง localStorage
+
       renderReviews();
       updateRatingStats();
       closeReviewModal();
